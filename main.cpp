@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <sqlite3.h>  // Include the SQLite library
+#include <limits>     
 using namespace std;
 
 // Function to connect to the database
@@ -19,22 +20,56 @@ sqlite3* connectDB() {
     return DB;
 }
 
+// Function to get a valid integer input validation
+int getValidInt() {
+    int value;
+    while (true) {
+        cout << "Enter an integer value: ";
+        cin >> value;
+        if (cin.fail()) {
+            cin.clear(); // clear the error flag
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard invalid input
+            cout << "Invalid input. Please enter a valid integer." << endl;
+        } else {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard any remaining input
+            return value;
+        }
+    }
+}
+
+// Function to get a valid double input validation
+double getValidDouble() {
+    double value;
+    while (true) {
+        cout << "Enter a double value: ";
+        cin >> value;
+        if (cin.fail()) {
+            cin.clear(); // clear the error flag
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard invalid input
+            cout << "Invalid input. Please enter a valid double." << endl;
+        } else {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // discard any remaining input
+            return value;
+        }
+    }
+}
+
 // Function to add a record to the Suits_Programmers table
 void addSuitsProgrammers(sqlite3* db) {
     int P_ID, AIDG_ID;
     double expenses, net_worth;
     string role;
-    //Sub menu
+    //Menu
     cout << "Enter P_ID: ";
-    cin >> P_ID;
+    P_ID = getValidInt();
     cout << "Enter AIDG_ID: ";
-    cin >> AIDG_ID;
+    AIDG_ID = getValidInt();
     cout << "Enter Expenses: ";
-    cin >> expenses;
+    expenses = getValidDouble();
     cout << "Enter Net Worth: ";
-    cin >> net_worth;
+    net_worth = getValidDouble();
     cout << "Enter Role: ";
-    cin.ignore(); // to clear the newline left by previous input
+    cin.ignore(); 
     getline(cin, role);
 
     string sql = "INSERT INTO Suits_Programmers (P_ID, AIDG_ID, Expenses, Net_worth, Role) VALUES (?, ?, ?, ?, ?)";
@@ -62,11 +97,11 @@ void updateSupply(sqlite3* db) {
     double cost;
     //Sub menu
     cout << "Enter Supply_ID to update: ";
-    cin >> supply_id;
+    supply_id = getValidInt(); //Variable Validation
     cout << "Enter new Stock Level: ";
-    cin >> stock_level;
+    stock_level = getValidInt(); //Variable Validation
     cout << "Enter new Cost: ";
-    cin >> cost;
+    cost = getValidDouble(); //Variable Validation
 
     string sql = "UPDATE Supply SET Stock_Level = ?, Cost = ? WHERE Supply_ID = ?";
     sqlite3_stmt* stmt;
@@ -90,7 +125,7 @@ void deleteAppointment(sqlite3* db) {
     int appointment_number;
 
     cout << "Enter Appointment_number to delete: ";
-    cin >> appointment_number;
+    appointment_number = getValidInt();
 
     string sql = "DELETE FROM Appointment WHERE Appointment_number = ?";
     sqlite3_stmt* stmt;
@@ -116,11 +151,12 @@ void handleTransaction(sqlite3* db) {
 
     // Step 1: Create an order in the Order_Supplies table
     cout << "Enter Order ID: ";
-    cin >> order_id;
+    order_id = getValidInt(); //Variable Validation
     cout << "Enter Customer ID: ";
-    cin >> customer_id;
+    customer_id = getValidInt(); //Variable Validation
     cout << "Enter Order Total: ";
-    cin >> order_total;
+    order_total = getValidDouble(); //Variable Validation
+    
     //Inserts
     string createOrderSql = "INSERT INTO Order_Supplies (Order_ID, Customer_ID, Total) VALUES (?, ?, ?)";
     sqlite3_stmt* stmt;
@@ -128,6 +164,7 @@ void handleTransaction(sqlite3* db) {
     sqlite3_bind_int(stmt, 1, order_id);
     sqlite3_bind_int(stmt, 2, customer_id);
     sqlite3_bind_double(stmt, 3, order_total);
+    
     //Rollback error
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         cout << "Error inserting order: " << sqlite3_errmsg(db) << endl;
@@ -136,17 +173,19 @@ void handleTransaction(sqlite3* db) {
         return;
     }
     sqlite3_finalize(stmt);
-    //Sub menu
+    
     // Step 2: Update the stock level for the product
     cout << "Enter Product ID: ";
-    cin >> product_id;
+    product_id = getValidInt(); //Variable Validation
     cout << "Enter Quantity: ";
-    cin >> quantity;
+    quantity = getValidInt(); //Variable Validation
+    
     //Update
     string updateStockSql = "UPDATE Supply SET Stock_Level = Stock_Level - ? WHERE Product_ID = ?";
     sqlite3_prepare_v2(db, updateStockSql.c_str(), -1, &stmt, nullptr);
     sqlite3_bind_int(stmt, 1, quantity);
     sqlite3_bind_int(stmt, 2, product_id);
+    
     //Rollback error
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         cout << "Error updating stock: " << sqlite3_errmsg(db) << endl;
@@ -202,32 +241,19 @@ int main() {
     while (true) {
         showMenu();
         cout << "Choose an option: ";
-        cin >> choice;
+        choice = getValidInt(); //Variable Validation
         
         switch (choice) {
-            case 1:
-                addSuitsProgrammers(db);
-                break;
-            case 2:
-                updateSupply(db);
-                break;
-            case 3:
-                deleteAppointment(db);
-                break;
-            case 4:
-                handleTransaction(db);
-                break;
-            case 5:
-                displayJoinReport(db);
-                break;
-            case 6:
-                sqlite3_close(db);
-                return 0;
-            default:
-                cout << "Invalid option, try again." << endl; //Error
+            case 1: addSuitsProgrammers(db); break;
+            case 2: updateSupply(db); break;
+            case 3: deleteAppointment(db); break;
+            case 4: handleTransaction(db); break;
+            case 5: displayJoinReport(db); break;
+            case 6: sqlite3_close(db); return 0; // Close the database
+            default: cout << "Invalid option. Please try again." << endl;
         }
     }
-    
-    sqlite3_close(db); //DB close
+
+    sqlite3_close(db); // Close the database before exiting
     return 0;
 }
